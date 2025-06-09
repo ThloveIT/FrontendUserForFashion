@@ -1,0 +1,26 @@
+.categoryPanel button {
+  text-transform: capitalize !important;
+}
+
+.nav li .submenu {
+  visibility: hidden;
+  z-index: 1000;
+}
+
+.nav li:hover .submenu {
+  opacity: 1 !important;
+  visibility: inherit;
+  top: 100%;
+}
+
+.edit-ul {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.edit{
+  margin-right: 15px;
+}
+/* .categoryPanel .submenu {
+  display: none;
+} */
