@@ -6,6 +6,21 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://localhost:7264', // Địa chỉ backend
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Loại bỏ '/api' khỏi path
+      },
+      '/images': { // Thêm proxy cho file tĩnh
+        target: 'https://localhost:7264',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/images/, '/images/products'),
+      },
+    },
   },
 });

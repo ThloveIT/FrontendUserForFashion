@@ -85,11 +85,13 @@ const Login = () => {
       setIsLoading(false);
       return;
     }
+    console.log('Credentials:', formField);
     login(formField)
       .then((res) => {
         if (res.status === 200) {
           setIsLoading(false);
           localStorage.setItem('accessToken', res.data.token); // Giả sử backend trả về token trong data.token
+          console.log('Access Token saved:', localStorage.getItem('accessToken'));
           localStorage.setItem('refreshToken', res.data.refreshToken || ''); // Nếu có refresh token
           context.setIsLogin(true);
           setFormField({

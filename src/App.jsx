@@ -1,12 +1,10 @@
-// src/App.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, createContext, useCallback } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
 import Home from './pages/Home';
 import Footer from './components/Footer';
 import ProductListing from './pages/ProductListing';
 import ProductDetails from './pages/ProductDetails';
-import { createContext } from 'react';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
@@ -23,8 +21,9 @@ import Checkout from './pages/Checkout';
 import MyAccount from './pages/MyAccount';
 import MyList from './pages/MyList';
 import Orders from './pages/Orders';
-import { fetchDataFromApi } from './utils/api';
+import { fetchDataFromApi, getCart , placeOrder} from './services/api';
 import Address from './pages/MyAccount/address';
+import TryOnPage from './pages/Tryon';
 
 const MyContext = createContext();
 
@@ -34,27 +33,44 @@ function App() {
   const [maxWidth, setMaxWidth] = useState('lg');
   const [isLogin, setIsLogin] = useState(false);
   const [userData, setUserData] = useState(null);
-  
+  const [cartItems, setCartItems] = useState([]); // Quản lý giỏ hàng toàn cục
+
+  // Memoize updateCart với useCallback
+  const updateCart = useCallback(async (userId) => {
+    if (userId) {
+      try {
+        const cart = await getCart(userId);
+        setCartItems(cart.items || []);
+      } catch (error) {
+        console.error('Error updating cart:', error.response?.data || error.message);
+      }
+    } else {
+      setCartItems([]);
+    }
+  }, []); // Dependency rỗng, chỉ tạo lại khi component unmount
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
+    console.log('Token: ', token);
     if (token) {
       setIsLogin(true);
       fetchDataFromApi('/users/profile')
         .then((res) => {
-          if (res.status === 200) {
-            setUserData(res.data);
-          } else {
-            setIsLogin(false);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-          }
+          console.log('Profile response:', res);
+          setUserData(res.user || res);
+          setIsLogin(true);
+          updateCart(res.user?.id || res.id);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Profile fetch error:', error.response?.data || error.message);
           setIsLogin(false);
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
         });
+    } else {
+      console.log('Không có token trong localStorage');
+      setIsLogin(false);
+      setUserData(null);
     }
   }, []);
 
@@ -76,14 +92,35 @@ function App() {
       toast.error(msg);
     }
   };
- //them ham logout
+
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setIsLogin(false);
     setUserData(null);
+    setCartItems([]);
     openAlertBox('success', 'Đăng xuất thành công');
-    Navigate('/login');//Dieu huong ve trang dang nhap
+    window.location.href = '/login';
+  };
+
+
+  // Hàm đặt hàng
+  const placeOrderHandler = async (orderData) => {
+    console.log('UserData before order:', userData);
+    console.log('OrderData being sent:', orderData);
+    if (userData?.id) {
+      try {
+        await placeOrder(orderData);
+        openAlertBox('success', 'Đặt hàng thành công!');
+        setCartItems([]); // Xóa giỏ hàng sau khi đặt hàng
+        window.location.href = '/order'; // Chuyển đến trang đơn hàng
+      } catch (error) {
+        console.error('Order error:', error.response?.data || error.message);
+        openAlertBox('error', 'Đặt hàng thất bại: ' + (error.response?.data?.message || error.message));
+      }
+    } else {
+      openAlertBox('error', 'Vui lòng đăng nhập để đặt hàng!');
+    }
   };
 
   const values = {
@@ -96,32 +133,36 @@ function App() {
     setIsLogin,
     userData,
     setUserData,
-    handleLogout,  //add them handleLogout va context
+    handleLogout,
+    cartItems,
+    updateCart,
+    placeOrderHandler,
   };
 
   return (
-    <>
-      <BrowserRouter>
-        <MyContext.Provider value={values}>
-          <Header />
-          <Routes>
-            <Route path="/" exact element={<Home />} />
-            <Route path="/productListing" exact element={<ProductListing />} />
-            <Route path="/product/:id" exact element={<ProductDetails />} />
-            <Route path="/cart" exact element={<CartPage />} />
-            <Route path="/check-out" exact element={<Checkout />} />
-            <Route path="/my-account" exact element={<MyAccount />} />
-            <Route path="/love" exact element={<MyList />} />
-            <Route path="/order" exact element={<Orders />} />
-            <Route path="/address" exact element={<Address />} />
-            <Route path="/login" exact element={<Login />} />
-            <Route path="/register" exact element={<Register />} />
-            <Route path="/verify" exact element={<Verify />} />
-            <Route path="/forget-password" exact element={<ForgetPasswordPage />} />
-          </Routes>
-          <Footer />
-        </MyContext.Provider>
-      </BrowserRouter>
+    <BrowserRouter>
+      <MyContext.Provider value={values}>
+        <Header />
+        <Routes>
+          <Route path="/" exact element={<Home />} />
+          <Route path="/productListing" element={<ProductListing />} />
+          <Route path="/productListing/search" element={<ProductListing />} /> {/* Thêm route này */}
+          <Route path="/category/:categoryId" element={<ProductListing />} />
+          <Route path="/products/:productId" element={<ProductDetails />} />
+          <Route path="/cart" exact element={<CartPage />} />
+          <Route path="/check-out" exact element={<Checkout />} />
+          <Route path="/my-account" exact element={<MyAccount />} />
+          <Route path="/love" exact element={<MyList />} />
+          <Route path="/order" exact element={<Orders />} />
+          <Route path="/address" exact element={<Address />} />
+          <Route path="/login" exact element={<Login />} />
+          <Route path="/register" exact element={<Register />} />
+          <Route path="/verify" exact element={<Verify />} />
+          <Route path="/forget-password" exact element={<ForgetPasswordPage />} />
+          <Route path="/try-on" element={<TryOnPage />} />
+        </Routes>
+        <Footer />
+      </MyContext.Provider>
       <Toaster />
       <Dialog
         open={openProductDetailsModel}
@@ -149,7 +190,7 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </BrowserRouter>
   );
 }
 

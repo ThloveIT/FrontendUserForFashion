@@ -1,126 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { IoClose } from 'react-icons/io5';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import { FaSortDown } from 'react-icons/fa';
 import { Rating } from '@mui/material';
+import { MyContext } from '../../App';
 
-const CartItems = (props) => {
-  const [sizeAnchorEl, setSizeAnchorEl] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(props.size);
-  const openSize = Boolean(sizeAnchorEl);
+// Giả định API để lấy thông tin sản phẩm
+const fetchProductDiscount = async (productId) => {
+  try {
+    const response = await fetch(`https://localhost:7264/api/products/${productId}`);
+    const product = await response.json();
+    return product.discount || 0; // Giả định product có trường discount
+  } catch (error) {
+    console.error('Error fetching product discount:', error);
+    return 0;
+  }
+};
 
-  const [qtyAnchorEl, setQtyAnchorEl] = useState(null);
-  const [selectedQty, setSelectedQty] = useState(props.qty);
-  const openQty = Boolean(qtyAnchorEl);
+const CartItems = ({ productId, productName, oldPrice, newPrice, discountPercentage, imageUrl, onDelete, selectedSize, selectedQty }) => {
+  const { openAlertBox, userData } = useContext(MyContext);
 
-  const handleClickSize = (event) => {
-    setSizeAnchorEl(event.currentTarget);
-  };
-  const handleCloseSize = (value) => {
-    setSizeAnchorEl(null);
-    if (value !== null) {
-      setSelectedSize(value);
-    }
+  const [discount, setDiscount] = useState(0);
+
+  useEffect(() => {
+    const fetchDiscount = async () => {
+      const productDiscount = await fetchProductDiscount(productId);
+      setDiscount(productDiscount);
+    };
+    fetchDiscount();
+  }, [productId]);
+
+  const handleDelete = async () => {
+    if (onDelete) onDelete(productId);
   };
 
-  const handleClickQty = (event) => {
-    setQtyAnchorEl(event.currentTarget);
-  };
-  const handleCloseQty = (value) => {
-    setQtyAnchorEl(null);
-    if (value !== null) {
-      setSelectedQty(value);
-    }
-  };
+  // Tính totalPrice dựa trên (newPrice - discount) * selectedQty
+  const totalPrice = (newPrice - discount) * (selectedQty || 1);
+
+  // Ghép URL đầy đủ nếu imageUrl là đường dẫn tương đối
+  const fullImageUrl = imageUrl
+    ? imageUrl.startsWith('http')
+      ? imageUrl
+      : `https://localhost:7264${imageUrl}`
+    : 'https://via.placeholder.com/150';
+
   return (
     <div className="shadow-md rounded-md bg-white mt-5">
       <div className="cartItem w-full p-3 flex items-start gap-4 pb-5 border-b border-b-[rgba(0,0,0,0.1)]">
-        <div className="img my-auto w-[10%] rounded-md overflow-hidden border border-[rgba(0,0,0,0.1)]">
-          <Link to="/product/444" className="group">
+        <div className="img w-[80px] h-[80px] flex items-center justify-center overflow-hidden border border-[rgba(0,0,0,0.1)] rounded-md">
+          <Link to={`/products/${productId}`} className="block group">
             <img
-              src="https://demos.codezeel.com/prestashop/PRS21/PRS210502/103-cart_default/pack-mug-framed-poster.jpg"
-              alt="Ảnh sản phẩm"
-              className=" w-full group-hover:scale-105 transition-all"
+              src={fullImageUrl}
+              className="w-full h-full object-contain"
+              alt={productName || 'Product Image'}
+              onError={(e) => { e.target.src = 'https://via.placeholder.com/150'; console.log('Image load failed in CartItems:', imageUrl); }}
             />
           </Link>
         </div>
-        <div className="info w-[90%] relative">
-          <IoClose className=" cursor-pointer absolute top-[40%] right-2.5 text-2xl" />
-          <h3>
-            <Link to="/product/444" className=" link transition">
-              Áo sơ mi Jean cổ bẻ Layer Regular Fit dành cho nam
+        <div className="info w-[75%] pr-5 flex flex-col justify-between relative">
+          <h4 className="text-sm font-medium">
+            <Link to={`/products/${productId}`} className="link transition">
+              {productName}
             </Link>
-          </h3>
+          </h4>
+          <p className="flex items-center gap-5">
+            <span>
+              Kích thước: <span>{selectedSize || 'Không xác định'}</span>
+            </span>
+            <span>
+              Số lượng: <span>{selectedQty || 1}</span>
+            </span>
+            <span>
+              Giá: <span className="text-primary font-medium">{totalPrice.toLocaleString()}đ</span>
+            </span>
+          </p>
+          <IoClose
+            className="absolute top-5 right-2 text-2xl text-gray-500 hover:text-[#ff5252] cursor-pointer"
+            onClick={handleDelete}
+          />
           <Rating name="size-small" defaultValue={3} size="small" readOnly />
-          <div className=" flex items-center gap-4 mt-2">
-            <div className=" relative">
-              <span
-                className=" flex items-center justify-center bg-[#f1f1f1] text-xs font-medium px-2 py-1 rounded-md cursor-pointer gap-1"
-                onClick={handleClickSize}
-              >
-                Kích thước:{' '}
-                <span className=" text-primary">{selectedSize}</span>{' '}
-                <FaSortDown className=" -mt-1" />
-              </span>
-              <Menu
-                id="size-menu"
-                anchorEl={sizeAnchorEl}
-                open={openSize}
-                onClose={() => handleCloseSize(null)}
-                MenuListProps={{
-                  'aria-labelledby': 'basic-button',
-                }}
-              >
-                <MenuItem onClick={() => handleCloseSize('S')}>S</MenuItem>
-                <MenuItem onClick={() => handleCloseSize('M')}>M</MenuItem>
-                <MenuItem onClick={() => handleCloseSize('L')}>L</MenuItem>
-                <MenuItem onClick={() => handleCloseSize('XL')}>XL</MenuItem>
-                <MenuItem onClick={() => handleCloseSize('2XL')}>2XL</MenuItem>
-                <MenuItem onClick={() => handleCloseSize('Không giới hạn')}>
-                  Không giới hạn
-                </MenuItem>
-              </Menu>
-            </div>
-
-            <div className=" relative">
-              <span
-                className=" flex items-center justify-center bg-[#f1f1f1] text-xs font-medium px-2 py-1 rounded-md cursor-pointer gap-1"
-                onClick={handleClickQty}
-              >
-                Số lượng: <span className=" text-primary">{selectedQty}</span>{' '}
-                <FaSortDown className=" -mt-1" />
-              </span>
-              <Menu
-                id="size-menu"
-                anchorEl={qtyAnchorEl}
-                open={openQty}
-                onClose={() => handleCloseQty(null)}
-                MenuListProps={{
-                  'aria-labelledby': 'basic-button',
-                }}
-              >
-                <MenuItem onClick={() => handleCloseQty(1)}>1</MenuItem>
-                <MenuItem onClick={() => handleCloseQty(2)}>2</MenuItem>
-                <MenuItem onClick={() => handleCloseQty(3)}>3</MenuItem>
-                <MenuItem onClick={() => handleCloseQty(4)}>4</MenuItem>
-                <MenuItem onClick={() => handleCloseQty(5)}>5</MenuItem>
-                <MenuItem onClick={() => handleCloseQty(9)}>9</MenuItem>
-              </Menu>
-            </div>
-          </div>
-          <div className=" flex items-center gap-4 mt-2">
-            <span className="oldPrice line-through text-sm text-gray-500">
-              280.000đ
-            </span>
-            <span className="newPrice text-primary text-sm font-semibold">
-              240.000đ
-            </span>
-            <span className="newPrice text-primary text-sm font-semibold uppercase">
-              Giảm 15%
-            </span>
-          </div>
         </div>
       </div>
     </div>

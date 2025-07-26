@@ -1,23 +1,62 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import 'react-inner-image-zoom/lib/InnerImageZoom/styles.min.css';
 import InnerImageZoom from 'react-inner-image-zoom';
 import { Swiper, SwiperSlide } from 'swiper/react';
-
+import { Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import { fetchProduct } from '../../services/api';
 
-import { Navigation } from 'swiper/modules';
-
-const ProductZoom = () => {
+const ProductZoom = ({ productId }) => {
   const [slideIndex, setSlideIndex] = useState(0);
+  const [productImages, setProductImages] = useState([]);
   const zoomSlideBig = useRef();
   const zoomSlideSml = useRef();
 
+  // Lấy apiUrl từ environment variable
+  const apiUrl = (import.meta.env.VITE_API_URL || 'https://localhost:7264').replace(/\/api$/, '');
+  const cleanImageUrl = (url) => url.startsWith('/api') ? url.replace('/api', '') : url;
+
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!productId) {
+        console.error('No productId provided to ProductZoom');
+        setProductImages([]);
+        return;
+      }
+      try {
+        console.log('Fetching product with productId:', productId);
+        const product = await fetchProduct(productId);
+        console.log('Fetched product:', product);
+        if (product && product.productImages && Array.isArray(product.productImages)) {
+          const imagesWithBaseUrl = product.productImages.map(img => ({
+            ...img,
+            imageUrl: `${apiUrl}${cleanImageUrl(img.imageUrl)}`
+          }));
+          setProductImages(imagesWithBaseUrl);
+          setSlideIndex(0);
+        } else {
+          console.warn('No valid productImages found:', product);
+          setProductImages([]);
+        }
+      } catch (error) {
+        console.error('Error fetching product images:', error.message);
+        setProductImages([]);
+      }
+    };
+    if (productId) {
+      loadProduct();
+    }
+  }, [productId]);
+
   const goto = (index) => {
     setSlideIndex(index);
-    zoomSlideSml.current.swiper.slideTo(index);
-    zoomSlideBig.current.swiper.slideTo(index);
+    if (zoomSlideSml.current && zoomSlideBig.current) {
+      zoomSlideSml.current.swiper.slideTo(index);
+      zoomSlideBig.current.swiper.slideTo(index);
+    }
   };
+
   return (
     <>
       <div className="flex gap-3">
@@ -30,62 +69,31 @@ const ProductZoom = () => {
             modules={[Navigation]}
             className="zoomProductSliderThumb h-[500px]"
           >
-            <SwiperSlide>
-              <div
-                className={`item rounded-md cursor-pointer overflow-hidden group ${
-                  slideIndex === 0 ? 'opacity-100' : 'opacity-30'
-                }`}
-                onClick={() => goto(0)}
-              >
-                <img
-                  src="https://i.pinimg.com/736x/22/28/18/2228180667d6570945720139a15c68ba.jpg"
-                  alt="Img"
-                  className=" w-full transition group-hover:scale-105"
-                />
-              </div>
-            </SwiperSlide>
-            <SwiperSlide>
-              <div
-                className={`item rounded-md cursor-pointer overflow-hidden group ${
-                  slideIndex === 1 ? 'opacity-100' : 'opacity-30'
-                }`}
-                onClick={() => goto(1)}
-              >
-                <img
-                  src="https://i.pinimg.com/originals/b3/38/41/b338415ea17cb655ee090bb48eb50b61.jpg"
-                  alt="Img"
-                  className=" w-full transition group-hover:scale-105"
-                />
-              </div>
-            </SwiperSlide>
-            <SwiperSlide>
-              <div
-                className={`item rounded-md cursor-pointer overflow-hidden group ${
-                  slideIndex === 2 ? 'opacity-100' : 'opacity-30'
-                }`}
-                onClick={() => goto(2)}
-              >
-                <img
-                  src="https://i.pinimg.com/736x/eb/da/5a/ebda5a492dbc965c8bafe7350d41f4b7.jpg"
-                  alt="Img"
-                  className=" w-full transition group-hover:scale-105"
-                />
-              </div>
-            </SwiperSlide>
-            <SwiperSlide>
-              <div
-                className={`item rounded-md cursor-pointer overflow-hidden group ${
-                  slideIndex === 3 ? 'opacity-100' : 'opacity-30'
-                }`}
-                onClick={() => goto(3)}
-              >
-                <img
-                  src="https://i.pinimg.com/1200x/4f/ea/99/4fea9951b34ce1f0d913494437e0a163.jpg"
-                  alt="Img"
-                  className=" w-full transition group-hover:scale-105"
-                />
-              </div>
-            </SwiperSlide>
+            {productImages.length > 0 ? (
+              productImages.map((img, index) => (
+                <SwiperSlide key={index}>
+                  <div
+                    className={`item rounded-md cursor-pointer overflow-hidden group ${
+                      slideIndex === index ? 'opacity-100' : 'opacity-30'
+                    }`}
+                    onClick={() => goto(index)}
+                  >
+                    <img
+                      src={img.imageUrl}
+                      alt={`Product Image ${index + 1}`}
+                      className="w-full transition group-hover:scale-105"
+                      onError={(e) => { e.target.src = 'https://via.placeholder.com/150'; console.error(`Image load failed for ${img.imageUrl}`, e); }}
+                    />
+                  </div>
+                </SwiperSlide>
+              ))
+            ) : (
+              <SwiperSlide>
+                <div className="item rounded-md overflow-hidden h-full flex items-center justify-center">
+                  <p>Không có ảnh để hiển thị</p>
+                </div>
+              </SwiperSlide>
+            )}
           </Swiper>
         </div>
         <div className="zoomContainer w-[80%] h-[500px] overflow-hidden rounded-md">
@@ -96,34 +104,25 @@ const ProductZoom = () => {
             modules={[Navigation]}
             className="zoomProductSliderThumb h-[500px]"
           >
-            <SwiperSlide>
-              <InnerImageZoom
-                zoomType="hover"
-                zoomScale={1}
-                src="https://i.pinimg.com/736x/22/28/18/2228180667d6570945720139a15c68ba.jpg"
-              />
-            </SwiperSlide>
-            <SwiperSlide>
-              <InnerImageZoom
-                zoomType="hover"
-                zoomScale={1}
-                src="https://i.pinimg.com/originals/b3/38/41/b338415ea17cb655ee090bb48eb50b61.jpg"
-              />
-            </SwiperSlide>
-            <SwiperSlide>
-              <InnerImageZoom
-                zoomType="hover"
-                zoomScale={1}
-                src="https://i.pinimg.com/736x/eb/da/5a/ebda5a492dbc965c8bafe7350d41f4b7.jpg"
-              />
-            </SwiperSlide>
-            <SwiperSlide>
-              <InnerImageZoom
-                zoomType="hover"
-                zoomScale={1}
-                src="https://i.pinimg.com/1200x/4f/ea/99/4fea9951b34ce1f0d913494437e0a163.jpg"
-              />
-            </SwiperSlide>
+            {productImages.length > 0 ? (
+              productImages.map((img, index) => (
+                <SwiperSlide key={index}>
+                  <InnerImageZoom
+                    zoomType="hover"
+                    zoomScale={1}
+                    src={img.imageUrl}
+                    alt={`Product Image ${index + 1}`}
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/150'; console.error(`Zoom image load failed for ${img.imageUrl}`, e); }}
+                  />
+                </SwiperSlide>
+              ))
+            ) : (
+              <SwiperSlide>
+                <div className="h-full flex items-center justify-center">
+                  <p>Không có ảnh để hiển thị</p>
+                </div>
+              </SwiperSlide>
+            )}
           </Swiper>
         </div>
       </div>

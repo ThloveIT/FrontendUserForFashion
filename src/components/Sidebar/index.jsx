@@ -72,7 +72,7 @@ const Sidebar = () => {
           </div>
         </Collapse>
       </div>
-      <div className="box mt-3">
+      {/* <div className="box mt-3">
         <h3
           className=" mb-3 text-[16px] font-semibold flex items-center justify-between cursor-pointer pr-5"
           onClick={() => setIsOpenAvail(!isOpenAvail)}
@@ -98,9 +98,9 @@ const Sidebar = () => {
             />
           </div>
         </Collapse>
-      </div>
+      </div> */}
 
-      <div className="box mt-3">
+      {/* <div className="box mt-3">
         <h3
           className=" mb-3 text-[16px] font-semibold flex items-center justify-between cursor-pointer pr-5"
           onClick={() => setIsOpenSize(!isOpenSize)}
@@ -141,7 +141,7 @@ const Sidebar = () => {
             />
           </div>
         </Collapse>
-      </div>
+      </div> */}
       <div className="box mt-4">
         <h3 className=" mb-3 text-[16px] font-semibold flex items-center pr-5">
           Lọc theo giá tiền
@@ -157,7 +157,7 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="box mt-4">
+      {/* <div className="box mt-4">
         <h3 className=" mb-3 text-[16px] font-semibold flex items-center pr-5">
           Đánh giá
         </h3>
@@ -206,7 +206,7 @@ const Sidebar = () => {
             readOnly
           />
         </div>
-      </div>
+      </div> */}
     </aside>
   );
 };

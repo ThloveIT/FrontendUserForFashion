@@ -18,7 +18,13 @@ import { MyContext } from '../../App';
 import { IoClose } from 'react-icons/io5';
 
 const Footer = () => {
-  const context = useContext(MyContext);
+  const context = useContext(MyContext) || {
+    openCartPanel: false,
+    toggleDrawerCartPanel: () => () => {}, // Fallback hàm rỗng
+  };
+
+  // Đảm bảo toggleDrawerCartPanel là hàm hợp lệ
+  const handleToggleDrawer = context.toggleDrawerCartPanel || (() => () => {});
 
   return (
     <>
@@ -71,10 +77,10 @@ const Footer = () => {
                 Liên hệ với chúng tôi
               </h2>
               <p className=" text-sm font-normal pb-4">
-                BoBoBo - Siêu Thị Tiện Lợi <br /> Kim Sơn - Ninh Bình
+                CLASSYSHOP - Siêu Thị Tiện Lợi <br /> Kim Sơn - Ninh Bình
               </p>
-              <Link to="mailto:vu65617@gmail.com" className="link text-sm">
-                vu65617@gmail.com
+              <Link to="mailto:thlove2k3@gmail.com" className="link text-sm">
+                thlove2k3@gmail.com
               </Link>
               <span className=" text-sm font-semibold block w-full mt-3 mb-5 text-[#ff5252]">
                 (+ 84) 123 588 899
@@ -211,7 +217,7 @@ const Footer = () => {
           </ul>
 
           <p className=" text-xs uppercase">
-            © 2024 - Bản quyền thuộc về BOBOBO
+            © 2025 - Bản quyền thuộc về CLASSYSHOP
           </p>
           <div className="flex items-center gap-4">
             <img
@@ -235,7 +241,8 @@ const Footer = () => {
 
       <Drawer
         open={context.openCartPanel}
-        onClose={context.toggleDrawerCartPanel(false)}
+        // onClose={context.toggleDrawerCartPanel(false)}
+        onClose={handleToggleDrawer(false)} // Sử dụng hàm đã kiểm tra
         anchor="right"
         className="cartPanel"
       >
@@ -243,7 +250,8 @@ const Footer = () => {
           <h1 className=" text-lg font-medium">Giỏ hàng của tôi (5)</h1>
           <IoClose
             className=" text-2xl cursor-pointer"
-            onClick={context.toggleDrawerCartPanel(false)}
+            onClick={handleToggleDrawer(false)} // Sử dụng hàm đã kiểm tra
+            // onClick={context.toggleDrawerCartPanel(false)}
           />
         </div>
 

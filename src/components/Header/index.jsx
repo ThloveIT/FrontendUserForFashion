@@ -32,6 +32,8 @@ const Header = () => {
   const context = useContext(MyContext);
   const userData = context?.userData;
 
+  const cartItemCount = context?.cartItems?.length || 0;
+
   const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -235,7 +237,8 @@ const Header = () => {
               <li className=" list-none">
                 <Tooltip title="So sánh">
                   <IconButton aria-label="cart" className="link transition">
-                    <StyledBadge badgeContent={4} color="secondary">
+                    {/* <StyledBadge badgeContent={4} color="secondary"> */}
+                    <StyledBadge color="secondary">
                       <IoMdGitCompare />
                     </StyledBadge>
                   </IconButton>
@@ -244,7 +247,7 @@ const Header = () => {
               <li className=" list-none">
                 <Tooltip title="Yêu thích">
                   <IconButton aria-label="cart" className="link transition">
-                    <StyledBadge badgeContent={4} color="secondary">
+                    <StyledBadge color="secondary">
                       <FaHeart />
                     </StyledBadge>
                   </IconButton>
@@ -257,7 +260,7 @@ const Header = () => {
                     className="link transition"
                     onClick={() => context.setOpenCartPanel(true)}
                   >
-                    <StyledBadge badgeContent={4} color="secondary">
+                    <StyledBadge badgeContent={cartItemCount} color="secondary">
                       <FaShoppingCart />
                     </StyledBadge>
                   </IconButton>

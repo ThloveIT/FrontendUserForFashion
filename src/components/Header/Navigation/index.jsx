@@ -1,16 +1,41 @@
 import { Button } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RiMenu2Line } from 'react-icons/ri';
 import { MdKeyboardArrowDown } from 'react-icons/md';
 import { Link } from 'react-router-dom';
 import { GoRocket } from 'react-icons/go';
 import CategoryPanel from './CategoryPanel';
+import { fetchRootCategories } from '../../../services/api';
+import { MyContext } from '../../../App';
 
 const Navigation = () => {
+  const { openAlertBox } = React.useContext(MyContext); // Lấy hàm hiển thị toast từ context
   const [isOpenCategoryPanel, setIsOpenCategoryPanel] = useState(false);
+  const [rootCategories, setRootCategories] = useState([]); // State lưu danh mục cha
+  const [loading, setLoading] = useState(true); // State theo dõi trạng thái tải API
+  const [error, setError] = useState(null); // State lưu lỗi API
+  
+
   const openCategoryPanel = () => {
     setIsOpenCategoryPanel(true);
   };
+
+   // Gọi API khi component mount
+  useEffect(() => {
+    const loadRootCategories = async () => {
+      try {
+        const data = await fetchRootCategories(); // Gọi API /categories/root
+        setRootCategories(data); // Lưu danh mục cha vào state
+        setLoading(false);
+      } catch (err) {
+        setError('Không thể tải danh mục'); // Lưu lỗi
+        openAlertBox('error', 'Không thể tải danh mục'); // Hiển thị toast lỗi
+        setLoading(false);
+      }
+    };
+    loadRootCategories();
+  }, [openAlertBox]); // Dependency: openAlertBox để đảm bảo toast hoạt động
+
 
   return (
     <>
@@ -40,50 +65,44 @@ const Navigation = () => {
                   to="/productListing"
                   className=" link transition text-[14px] font-[600]"
                 >
-                Giới thiệu 
-                </Link>
-                {/* <div className="submenu absolute top-[120%] left-[0%] min-w-[200px] bg-white shadow-md opacity-0 transition-all">
-                  <ul>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Áo sơ mi
-                        </Button>
-                      </Link>
-                    </li>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Blazer cổ điển
-                        </Button>
-                      </Link>
-                    </li>
-
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Quần tây 
-                        </Button>
-                      </Link>
-                    </li>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Áo dạ 
-                        </Button>
-                      </Link>
-                    </li>
-                  </ul>
-                </div> */}
-              </li>
-              <li className=" list-none relative edit">
-                <Link
-                  to="/productListing"
-                  className=" link transition text-[14px] font-[600]"
-                >
                   Thời trang 
                 </Link>
-                <div className="submenu absolute top-[120%] left-[0%] min-w-[200px] bg-white shadow-md opacity-0 transition-all">
+                {/* Submenu hiển thị danh mục cha */}
+                <div className="submenu absolute top-[120%] left-[0%] min-w-[200px] bg-white shadow-md opacity-0 transition-all z-50">
+                  <ul>
+                    {loading ? (
+                      <li className="list-none w-full">
+                        <Button className="!text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
+                          Đang tải...
+                        </Button>
+                      </li>
+                    ) : error ? (
+                      <li className="list-none w-full">
+                        <Button className="!text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
+                          {error}
+                        </Button>
+                      </li>
+                    ) : rootCategories.length > 0 ? (
+                      rootCategories.map((category) => (
+                        <li key={category.id} className="list-none w-full">
+                          {/* Liên kết đến trang sản phẩm của danh mục */}
+                          <Link to={`/category/${category.id}`} className="w-full">
+                            <Button className="!text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
+                              {category.categoryName}
+                            </Button>
+                          </Link>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="list-none w-full">
+                        <Button className="!text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
+                          Không có danh mục
+                        </Button>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+                {/* <div className="submenu absolute top-[120%] left-[0%] min-w-[200px] bg-white shadow-md opacity-0 transition-all">
                   <ul>
                     <li className=" list-none w-full">
                       <Link to="/" className=" w-full">
@@ -136,7 +155,7 @@ const Navigation = () => {
                       </Link>
                     </li>
                   </ul>
-                </div>
+                </div> */}
               </li>
               <li className=" list-none relative edit">
                 <Link
@@ -181,7 +200,7 @@ const Navigation = () => {
               </li>
               <li className=" list-none edit relative">
                 <Link
-                  to="/"
+                  to="/try-on"
                   className=" link transition text-[14px] font-[600]"
                 >
                   Thử đồ 
@@ -261,88 +280,6 @@ const Navigation = () => {
                   </ul>
                 </div> */}
               </li>
-              {/* <li className=" list-none edit relative">
-                <Link
-                  to="/"
-                  className=" link transition text-[14px] font-[600]"
-                >
-                  Đường phố
-                </Link>
-                <div className="submenu absolute top-[120%] left-[0%] min-w-[200px] bg-white shadow-md opacity-0 transition-all">
-                  <ul>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Áo thun 
-                        </Button>
-                      </Link>
-                    </li>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Áo hoodie oversize
-                        </Button>
-                      </Link>
-                    </li>
-
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Áo bomber 
-                        </Button>
-                      </Link>
-                    </li>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Quần jeans 
-                        </Button>
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </li>
-              <li className=" list-none edit relative">
-                <Link
-                  to="/"
-                  className=" link transition text-[14px] font-[600]"
-                >
-                  Công sở 
-                </Link>
-                <div className="submenu absolute top-[120%] left-[0%] min-w-[200px] bg-white shadow-md opacity-0 transition-all">
-                  <ul>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Vest công sở 
-                        </Button>
-                      </Link>
-                    </li>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Đầm công sở 
-                        </Button>
-                      </Link>
-                    </li>
-
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Quần tây 
-                        </Button>
-                      </Link>
-                    </li>
-                    <li className=" list-none w-full">
-                      <Link to="/" className=" w-full">
-                        <Button className=" !text-[rgba(0,0,0,0.8)] w-full !text-left !justify-start !capitalize">
-                          Áo sơ mi 
-                        </Button>
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </li> */}
             </ul>
           </div>
           <div className="col_3 flex gap-1 items-center w-[17%] text-[13px] font-[500] link">

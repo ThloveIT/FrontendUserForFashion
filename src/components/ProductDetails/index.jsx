@@ -1,23 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Rating from '@mui/material/Rating';
 import { AiOutlineShoppingCart } from 'react-icons/ai';
 import { FaRegHeart } from 'react-icons/fa';
 import { IoMdGitCompare } from 'react-icons/io';
 import { Button } from '@mui/material';
 import QtyBox from '../QtyBox';
+import { fetchProduct, addItemToCart } from '../../services/api';
+import { MyContext } from '../../App';
 
-const ProductDetailsComponent = () => {
-  const [productActionIndex, setProductActionIndex] = useState(null);
+const ProductDetailsComponent = ({ productId }) => {
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const { userData, openAlertBox, updateCart } = useContext(MyContext);
+
+  useEffect(() => {
+    console.log('Fetching product with productId:', productId);
+    if (!productId) return;
+
+    let ignore = false;
+
+    const loadProduct = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchProduct(productId);
+        console.log('Fetched product data:', data);
+        if (!ignore) setProduct(data);
+      } catch (err) {
+        if (!ignore) {
+          setError(err.response?.data?.title ?? 'Không thể tải chi tiết sản phẩm');
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    loadProduct();
+    return () => { ignore = true; };
+  }, [productId]);
+
+  const handleQuantityChange = (newQuantity) => {
+    console.log('Quantity changed to:', newQuantity); // Debug
+    setQuantity(newQuantity);
+  };
+
+  const handleAddToCart = async () => {
+    console.log('Selected quantity before adding:', quantity); // Debug
+    if (!product || quantity <= 0 || quantity > product.stock) {
+      openAlertBox('error', 'Số lượng không hợp lệ hoặc vượt quá tồn kho!');
+      return;
+    }
+    if (!userData?.id) {
+      openAlertBox('error', 'Vui lòng đăng nhập để thêm vào giỏ hàng!');
+      return;
+    }
+    try {
+      const cartItem = {
+        productId: product.id,
+        quantity: quantity, // Sử dụng quantity từ state
+        price: product.price - (product.discount || 0),
+      };
+      console.log('Cart Item being sent:', cartItem); // Debug payload
+
+      await addItemToCart(userData.id, cartItem);
+      openAlertBox('success', 'Đã thêm sản phẩm vào giỏ hàng!');
+      await updateCart(userData.id); // Cập nhật giỏ hàng
+    } catch (err) {
+      console.error('Error adding to cart:', err.response?.data || err.message);
+      openAlertBox('error', 'Không thể thêm vào giỏ hàng: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  if (loading) return <div>Đang tải...</div>;
+  if (error) return <div>{error}</div>;
+  if (!product) return <div>Không có dữ liệu sản phẩm</div>;
+
   return (
     <>
-      <h1 className=" text-[22px] font-semibold mb-3">
-        Áo sơ mi Jean cổ bẻ Layer Regular Fit dành cho nam
-      </h1>
-      <div className=" flex items-center gap-3">
-        <span className=" text-gray-500 text-[13px]">
-          Thương hiệu:{' '}
-          <span className=" font-semibold text-black uppercase">
-            RARE RABBIT
+      <h1 className="text-[22px] font-semibold mb-3">{product.productName}</h1>
+      <div className="flex items-center gap-3">
+        <span className="text-gray-500 text-[13px]">
+          Phong cách:{' '}
+          <span className="font-semibold text-black uppercase">
+            {product.categoryName || 'Không xác định'}
           </span>
         </span>
         <Rating name="size-small" defaultValue={3} size="small" readOnly />
@@ -25,101 +91,37 @@ const ProductDetailsComponent = () => {
           Bình luận: (7)
         </span>
       </div>
-      <div className=" flex items-center gap-4 mt-4">
+      <div className="flex items-center gap-4 mt-4">
         <span className="oldPrice line-through text-sm text-gray-500">
-          280.000đ
+          {product.discount > 0 ? product.price.toLocaleString() : ''}đ
         </span>
         <span className="newPrice text-primary text-sm font-semibold">
-          240.000đ
+          {(product.price - (product.discount || 0)).toLocaleString()}đ
         </span>
-
-        <span className=" text-sm">
+        <span className="text-sm">
           Sản phẩm có sẵn:{' '}
-          <span className=" text-green-600 font-semibold">144 sản phẩm</span>
+          <span className="text-green-600 font-semibold">{product.stock} sản phẩm</span>
         </span>
       </div>
-      <p className=" mt-4 mb-5">
-        Có nhiều biến thể của các đoạn văn bản Lorem Ipsum, nhưng phần lớn đã bị
-        thay đổi ở một số dạng, bằng cách thêm yếu tố hài hước, hoặc các từ ngẫu
-        nhiên trông không đáng tin chút nào. Nếu bạn định sử dụng một đoạn văn
-        bản Lorem Ipsum, bạn cần đảm bảo rằng không có bất kỳ điều gì đáng xấu
-        hổ ẩn ở giữa văn bản. Tất cả các trình tạo Lorem Ipsum trên Internet có
-        xu hướng lặp lại các đoạn được xác định trước khi cần thiết, khiến đây
-        trở thành trình tạo thực sự đầu tiên trên Internet.
-      </p>
-      <div className=" flex items-center gap-3">
-        <span>Kích thước: </span>
-        <div className=" flex items-center gap-1 actions">
-          <Button
-            className={`${
-              productActionIndex === 0 ? '!bg-[#ff5252] !text-white' : ''
-            }`}
-            onClick={() => setProductActionIndex(0)}
-          >
-            S
-          </Button>
-          <Button
-            className={`${
-              productActionIndex === 1 ? '!bg-[#ff5252] !text-white' : ''
-            }`}
-            onClick={() => setProductActionIndex(1)}
-          >
-            M
-          </Button>
-          <Button
-            className={`${
-              productActionIndex === 2 ? '!bg-[#ff5252] !text-white' : ''
-            }`}
-            onClick={() => setProductActionIndex(2)}
-          >
-            L
-          </Button>
-          <Button
-            className={`${
-              productActionIndex === 3 ? '!bg-[#ff5252] !text-white' : ''
-            }`}
-            onClick={() => setProductActionIndex(3)}
-          >
-            XL
-          </Button>
-          <Button
-            className={`${
-              productActionIndex === 4 ? '!bg-[#ff5252] !text-white' : ''
-            }`}
-            onClick={() => setProductActionIndex(4)}
-          >
-            2XL
-          </Button>
-          <Button
-            className={`${
-              productActionIndex === 5 ? '!bg-[#ff5252] !text-white' : ''
-            }`}
-            onClick={() => setProductActionIndex(5)}
-          >
-            Không giới hạn
-          </Button>
-        </div>
-      </div>
-      <p className=" text-sm mt-4">
+      <p className="mt-4 mb-5">{product.description}</p>
+      <p className="text-sm mt-4">
         Miễn phí vận chuyển (Giao hàng chậm nhất vào 12-05-2025)
       </p>
-      <div className=" flex items-center gap-3 mt-4 group">
+      <div className="flex items-center gap-3 mt-4 group">
         <div className="qtyBoxWrapper w-20">
-          <QtyBox />
+          <QtyBox onQuantityChange={handleQuantityChange} max={product.stock} />
         </div>
-        <Button className=" flex items-center !p-2 !text-sm gap-2 !border !border-[rgba(0,0,0,0.1)] btn-org ">
-          <AiOutlineShoppingCart className=" text-lg" /> Thêm vào giỏ
+        <Button
+          className="flex items-center !p-2 !text-sm gap-2 !border !border-[rgba(0,0,0,0.1)] btn-org"
+          onClick={handleAddToCart}
+        >
+          <AiOutlineShoppingCart className="text-lg" /> Thêm vào giỏ
         </Button>
       </div>
-      <div className=" flex items-center gap-16 mt-4">
-        <span className=" flex items-center gap-2 text-[16px] cursor-pointer link font-medium">
-          <FaRegHeart className=" text-lg" />
+      <div className="flex items-center gap-16 mt-4">
+        <span className="flex items-center gap-2 text-[16px] cursor-pointer link font-medium">
+          <FaRegHeart className="text-lg" />
           Yêu thích
-        </span>
-
-        <span className=" flex items-center gap-2 text-[16px] cursor-pointer link font-medium">
-          <IoMdGitCompare className=" text-lg" />
-          So sánh
         </span>
       </div>
     </>
